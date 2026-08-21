@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOP 標準作業指導書</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "PingFang TC", "Microsoft JhengHei", "Noto Sans Thai", -apple-system, sans-serif;
+    background: #EDEFF1;
+    color: #1C2126;
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+  .phone { max-width: 420px; margin: 0 auto; background: #FFFFFF; border-radius: 18px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
+  .topbar { background: #1C2126; padding: 16px 20px 14px; display:flex; justify-content:space-between; align-items:flex-start; }
+  .topbar .eyebrow { font-size: 11px; letter-spacing: 2px; color: #8A94A0; margin-bottom: 4px; }
+  .topbar h1 { font-size: 18px; font-weight: 700; color: #FFFFFF; letter-spacing: 0.5px; }
+  .lang-switch { display:flex; background:#2A313A; border-radius:8px; overflow:hidden; flex-shrink:0; }
+  .lang-btn { padding:6px 10px; font-size:12px; color:#8A94A0; background:transparent; border:none; cursor:pointer; font-weight:600; }
+  .lang-btn.active { background:#F5A623; color:#1C2126; }
+
+  .tabs { display:flex; background:#FFFFFF; border-bottom: 1px solid #E4E7EB; }
+  .tab { flex:1; text-align:center; padding:13px 8px; font-size:13.5px; font-weight:600; color:#9AA3AC; cursor:pointer; border-bottom:3px solid transparent; }
+  .tab.active { color:#1C2126; border-bottom-color:#F5A623; }
+
+  .panel { display:none; }
+  .panel.active { display:block; }
+
+  .search-wrap { padding: 18px 20px 8px; background: #FFFFFF; }
+  .search-label { font-size: 12px; color: #6B7684; margin-bottom: 8px; }
+  .search-box { display: flex; align-items: center; background: #F1F3F5; border: 2px solid #F5A623; border-radius: 10px; padding: 14px; }
+  .search-box svg { flex-shrink: 0; margin-right: 8px; }
+  #searchInput { border: none; background: transparent; outline: none; font-size: 18px; width: 100%; letter-spacing: 0.5px; color: #1C2126; }
+  #searchInput::placeholder { color: #A2ABB5; }
+  .hint { font-size: 11.5px; color: #9AA3AC; padding: 8px 20px 10px; background: #FFFFFF; }
+  .code-table-toggle { font-size: 12px; color: #F5A623; padding: 0 20px 12px; background: #FFFFFF; cursor: pointer; text-decoration: underline; }
+  .code-table { display: none; padding: 4px 20px 14px; background: #FBFBFC; border-bottom: 1px solid #E4E7EB; }
+  .code-table.open { display: block; }
+  .code-table table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .code-table td { padding: 4px 6px; border-bottom: 1px solid #EEE; }
+  .code-table td:last-child { font-weight: 700; color: #F5A623; text-align: right; }
+
+  .results { padding: 6px 0 10px; max-height: 440px; overflow-y: auto; }
+  .result-item { display: flex; justify-content: space-between; align-items: center; padding: 17px 20px; border-bottom: 1px solid #F0F1F3; cursor: pointer; min-height: 60px; }
+  .result-item:active { background: #FFF7EB; }
+  .result-left { flex: 1; min-width: 0; }
+  .result-code { font-size: 11px; color: #F5A623; font-weight: 700; letter-spacing: 0.5px; font-family: "SF Mono", Consolas, monospace; }
+  .result-name { font-size: 15px; font-weight: 600; color: #1C2126; margin-top: 2px; }
+  .result-meta { font-size: 12px; color: #8A94A0; margin-top: 3px; }
+  .result-meta .vendor { display: inline-block; background: #EEF1F4; padding: 1px 7px; border-radius: 4px; margin-right: 6px; color: #5A6572; }
+  .result-meta .ng { background:#FDECEC; color:#C24242; }
+  .arrow { color: #C6CBD1; margin-left: 10px; flex-shrink: 0; }
+  .no-result { padding: 40px 20px; text-align: center; color: #A2ABB5; font-size: 13px; }
+  .empty-state { padding: 30px 20px 10px; text-align: center; }
+  .empty-state .big-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.5; }
+  .empty-state p { font-size: 13px; color: #9AA3AC; line-height: 1.6; }
+  .warn-badge { display: inline-block; background: #FFF3DD; color: #B5791A; font-size: 10.5px; padding: 1px 6px; border-radius: 4px; margin-left: 6px; }
+
+  /* Browse mode */
+  .crumb { display:flex; align-items:center; gap:6px; padding:14px 20px 4px; font-size:12.5px; color:#8A94A0; background:#FFFFFF; }
+  .crumb span.clickable { color:#F5A623; cursor:pointer; font-weight:600; }
+  .browse-list { padding: 4px 0 10px; max-height: 480px; overflow-y:auto; }
+  .browse-item { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #F0F1F3; cursor:pointer; min-height:56px; }
+  .browse-item:active { background:#FFF7EB; }
+  .browse-item .label { font-size:15px; font-weight:600; color:#1C2126; }
+  .browse-item .sub { font-size:12px; color:#9AA3AC; margin-top:2px; }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="topbar">
+    <div>
+      <div class="eyebrow" id="t-eyebrow">掃描 QR CODE 後進入</div>
+      <h1 id="t-title">SOP 標準作業指導書</h1>
+    </div>
+    <div class="lang-switch">
+      <button class="lang-btn active" data-lang="zh">中文</button>
+      <button class="lang-btn" data-lang="th">ไทย</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="search" id="t-tab-search">快速查詢</div>
+    <div class="tab" data-tab="browse" id="t-tab-browse">瀏覽選單</div>
+  </div>
+
+  <!-- 搜尋模式 -->
+  <div class="panel active" id="panel-search">
+    <div class="search-wrap">
+      <div class="search-label" id="t-search-label">輸入工單上的料號＋製程代碼</div>
+      <div class="search-box">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="searchInput" placeholder="11C037800900-311" autocomplete="off">
+      </div>
+    </div>
+    <div class="hint" id="t-hint">格式：料號-製程代碼，例如 -311。NG 請輸入「料號-NG」</div>
+    <div class="code-table-toggle" id="toggleCodes">查看製程代碼對照表 ▾</div>
+    <div class="code-table" id="codeTable">
+      <table id="codeTableBody"></table>
+    </div>
+    <div class="results" id="results"></div>
+  </div>
+
+  <!-- 瀏覽模式 -->
+  <div class="panel" id="panel-browse">
+    <div class="crumb" id="crumb"></div>
+    <div class="browse-list" id="browseList"></div>
+  </div>
+</div>
+
+<p style="text-align:center;font-size:12.5px;color:#8A94A0;margin-top:18px;line-height:1.7;max-width:420px;margin-left:auto;margin-right:auto;">
+  資料抓自網站上目前已建好的真實頁面，<span class="warn-badge">請確認</span> 標記的組合需要人工核對。
+</p>
+
+<script>
+/* ===================== 語言包 ===================== */
+const I18N = {
+  zh: {
+    eyebrow: "掃描 QR CODE 後進入",
+    title: "SOP 標準作業指導書",
+    tabSearch: "快速查詢",
+    tabBrowse: "瀏覽選單",
+    searchLabel: "輸入工單上的料號＋製程代碼",
+    hint: "格式：料號-製程代碼，例如 -311。NG 請輸入「料號-NG」",
+    toggleCodesOpen: "查看製程代碼對照表 ▾",
+    toggleCodesClose: "收起製程代碼對照表 ▴",
+    placeholder: "11C037800900-311",
+    emptyDefault: "輸入「料號－製程代碼」<br>符合唯一結果會直接開啟",
+    noResult: "找不到符合的料號／製程代碼，請確認輸入內容",
+    locked: (name, page) => `已鎖定：${name}－${page}<br>正在為您開啟該製程頁面…`,
+    chooseVendor: "請選擇廠商",
+    chooseProduct: "請選擇產品",
+    chooseProcess: "請選擇製程",
+    back: "‹ 返回",
+    home: "首頁",
+    ngLabel: "NG 異常處理"
+  },
+  th: {
+    eyebrow: "หลังจากสแกน QR CODE",
+    title: "คู่มือขั้นตอนการทำงาน (SOP)",
+    tabSearch: "ค้นหาด่วน",
+    tabBrowse: "เมนูเรียกดู",
+    searchLabel: "กรอกรหัสสินค้า + รหัสกระบวนการ",
+    hint: "รูปแบบ: รหัสสินค้า-รหัสกระบวนการ เช่น -311 / NG พิมพ์ -NG",
+    toggleCodesOpen: "ดูตารางรหัสกระบวนการ ▾",
+    toggleCodesClose: "ซ่อนตารางรหัสกระบวนการ ▴",
+    placeholder: "11C037800900-311",
+    emptyDefault: "กรอก \"รหัสสินค้า-รหัสกระบวนการ\"<br>หากพบผลลัพธ์เดียวจะเปิดหน้าทันที",
+    noResult: "ไม่พบรหัสสินค้า/รหัสกระบวนการที่ตรงกัน กรุณาตรวจสอบอีกครั้ง",
+    locked: (name, page) => `เลือกแล้ว: ${name}－${page}<br>กำลังเปิดหน้าขั้นตอนนี้…`,
+    chooseVendor: "เลือกผู้ผลิต",
+    chooseProduct: "เลือกสินค้า",
+    chooseProcess: "เลือกกระบวนการ",
+    back: "‹ ย้อนกลับ",
+    home: "หน้าแรก",
+    ngLabel: "การจัดการของเสีย (NG)"
+  }
+};
+let currentLang = 'zh';
+
+const PROC_NAMES = {
+  zh: { "102":"鑄造","311":"鋸切","310":"研磨","604":"校正","503":"噴砂","218":"焊補","605":"去毛邊","602":"檢驗＋包裝","351":"退砂","352":"T4 熱處理","353":"T5 熱處理" },
+  th: { "102":"หล่อขึ้นรูป","311":"ตัด","310":"ขัด","604":"ปรับแนว","503":"พ่นทราย","218":"เชื่อมซ่อม","605":"ลบคม","602":"ตรวจสอบ+บรรจุ","351":"ขจัดทราย","352":"อบชุบ T4","353":"อบชุบ T5" }
+};
+
+/* ===================== 製程代碼 ===================== */
+const CODE_MAP = {
+  "鑄造": "102", "鋸切": "311", "研磨": "310", "校正": "604",
+  "噴砂": "503", "焊補": "218", "去毛邊": "605", "檢驗": "602",
+  "檢包": "602", "退砂": "351", "T4": "352", "T5": "353"
+};
+function guessCodes(pageName) {
+  const codes = [];
+  for (const key in CODE_MAP) if (pageName.includes(key)) codes.push(CODE_MAP[key]);
+  if (pageName.toUpperCase().includes("NG")) codes.push("NG");
+  return [...new Set(codes)];
+}
+
+const BASE = "https://sites.google.com/view/sop-factory/首頁";
+
+/* ===================== 真實網站資料（部分廠商示範） ===================== */
+const RAW = [
+  { vendor:"旭生", code:"11C037800900", name:"403馬達座", pages:["鋸切雷切-403","鋸切外-403","鋸切內-403","檢包TO 加工","成品檢包-403","NG-403"], path:"旭生/11c037800900-403馬達座" },
+  { vendor:"旭生", code:"11C037801000", name:"404馬達座", pages:["鋸切外-404","鋸切內-404","檢包TO 加工-404","校正-404","成品檢包-404"], path:"旭生/11c037801000-404馬達座" },
+  { vendor:"誠岱", code:"11C005400100", name:"三T大馬達", pages:["鋸切","去毛邊","NG"], path:"誠岱/11c005400100-三t大馬達" },
+  { vendor:"誠岱", code:"11C005400200", name:"新馬達外殼", pages:["鋸切540200","去毛邊540200","NG540200"], path:"誠岱/11c005400200-新馬達外殼" },
+  { vendor:"誠岱", code:"11C005400300", name:"齒輪箱無孔", pages:["鋸切-540300","研磨+漏測","去毛邊+檢包","NG-540300"], path:"誠岱/11c005400300-齒輪箱無孔" },
+  { vendor:"誠岱", code:"11C005400400", name:"齒輪箱有孔", pages:["鋸切","去毛邊","檢包","NG"], path:"誠岱/11c005400400-齒輪箱有孔" },
+  { vendor:"誠岱", code:"11C005400500", name:"電器外殼", pages:["鋸切-5400500","研磨-5400500","去毛邊-5400500","NG-5400500"], path:"誠岱/11c005400500-電器外殼" },
+  { vendor:"美利達", code:"11C038100100", name:"馬達托架039", pages:["鋸切039","研磨039","去毛邊+校正039","檢包-039","NG-039"], path:"美利達/11c038100100-馬達托架039" },
+  { vendor:"美利達", code:"11C038100200", name:"大軸連接", pages:["鋸切-125","去毛邊 + 校正125","檢包125","NG-125"], path:"美利達/11c038100200-大軸連接" },
+  { vendor:"美利達", code:"11C038100400", name:"馬達托架MB6-038", pages:["鋸切-038","去毛邊+校正038","檢包-038","NG-038"], path:"美利達/11c038100400-馬達托架mb6-038" },
+  { vendor:"川方", code:"11C004200100", name:"新索倫10040", pages:["鋸切-4200100","去毛邊4200100","NG-4200100"], path:"川方/11c004200100-新索倫10040" },
+  { vendor:"川方", code:"11C004200200", name:"CWL200索倫", pages:["鋸切-4200200","去毛邊-4200200","NG-4200200"], path:"川方/11c004200200-cwl200索倫" },
+  { vendor:"普萊欣", code:"11C0121025AB", name:"左右旋臂", pages:["鋸切25AB","校正25AB","檢包25AB"], path:"普萊欣/11c0121025ab-左右旋臂" },
+];
+
+// 展開查詢清單（搜尋模式用）
+const DATA = [];
+RAW.forEach(product => {
+  const codeSet = {};
+  product.pages.forEach(page => {
+    guessCodes(page).forEach(c => {
+      if (!codeSet[c]) codeSet[c] = [];
+      codeSet[c].push(page);
+    });
+  });
+  Object.keys(codeSet).forEach(code => {
+    const pages = codeSet[code];
+    const uncertain = pages.length > 1 || pages.some(p => (p.match(/[+＋]/) || []).length > 0);
+    DATA.push({
+      matCode: product.code, procCode: code, vendor: product.vendor, name: product.name,
+      pageLabel: pages.join(" / "),
+      url: BASE + "/" + product.path + "/" + pages[0].toLowerCase().replace(/\s+/g,'-').replace(/\+/g,'-'),
+      uncertain
+    });
+  });
+});
+
+/* ===================== 搜尋模式邏輯 ===================== */
+const input = document.getElementById('searchInput');
+const results = document.getElementById('results');
+const toggle = document.getElementById('toggleCodes');
+const codeTable = document.getElementById('codeTable');
+
+function renderCodeTable() {
+  const names = PROC_NAMES[currentLang];
+  const rows = Object.keys(names).map(code => `<tr><td>${names[code]}</td><td>${code}</td></tr>`).join('');
+  document.getElementById('codeTableBody').innerHTML = rows;
+}
+
+toggle.addEventListener('click', () => {
+  codeTable.classList.toggle('open');
+  toggle.textContent = codeTable.classList.contains('open') ? I18N[currentLang].toggleCodesClose : I18N[currentLang].toggleCodesOpen;
+});
+
+function parseQuery(raw) {
+  const cleaned = raw.trim();
+  const ngMatch = cleaned.match(/^([A-Za-z0-9]+)[\s\-]*NG$/i);
+  if (ngMatch) return { code: ngMatch[1].toLowerCase(), proc: 'NG' };
+  const m = cleaned.match(/^([A-Za-z0-9]+)[\s\-]*([0-9]{2,4})?$/);
+  if (!m) return { code: cleaned.toLowerCase(), proc: '' };
+  return { code: (m[1] || '').toLowerCase(), proc: (m[2] || '') };
+}
+
+function jumpTo(item) {
+  const t = I18N[currentLang];
+  results.innerHTML = `<div class="empty-state"><div class="big-icon">✅</div><p><b style="color:#1C2126">${t.locked(item.name, item.pageLabel)}</b></p></div>`;
+  // 實際部署後: window.location.href = item.url;
+}
+
+function render(list) {
+  const t = I18N[currentLang];
+  if (list.length === 0) { results.innerHTML = `<div class="no-result">${t.noResult}</div>`; return; }
+  if (list.length === 1) { jumpTo(list[0]); return; }
+  results.innerHTML = list.map(item => `
+    <div class="result-item">
+      <div class="result-left">
+        <div class="result-code">${item.matCode} · ${item.procCode}</div>
+        <div class="result-name">${item.name}${item.uncertain ? '<span class="warn-badge">請確認</span>' : ''}</div>
+        <div class="result-meta"><span class="vendor${item.procCode==='NG' ? ' ng':''}">${item.vendor}</span>${item.pageLabel}</div>
+      </div>
+      <div class="arrow">›</div>
+    </div>`).join('');
+}
+
+function showEmptyState() {
+  results.innerHTML = `<div class="empty-state"><div class="big-icon">🔍</div><p>${I18N[currentLang].emptyDefault}</p></div>`;
+}
+
+input.addEventListener('input', () => {
+  const raw = input.value.trim();
+  if (raw === '') { showEmptyState(); return; }
+  const query = parseQuery(raw);
+  const filtered = DATA.filter(item => {
+    const codeMatch = item.matCode.toLowerCase().includes(query.code);
+    const procMatch = query.proc ? item.procCode === query.proc : true;
+    return codeMatch && procMatch;
+  });
+  render(filtered);
+});
+
+/* ===================== 瀏覽模式邏輯 ===================== */
+const crumbEl = document.getElementById('crumb');
+const browseListEl = document.getElementById('browseList');
+let browseState = { level: 'vendor', vendor: null, product: null };
+
+function getVendors() { return [...new Set(RAW.map(p => p.vendor))]; }
+function getProducts(vendor) { return RAW.filter(p => p.vendor === vendor); }
+
+function renderBrowse() {
+  const t = I18N[currentLang];
+  let crumbHTML = `<span class="clickable" data-nav="home">${t.home}</span>`;
+  if (browseState.vendor) crumbHTML += ` › <span class="${browseState.product ? 'clickable' : ''}" data-nav="vendor">${browseState.vendor}</span>`;
+  if (browseState.product) crumbHTML += ` › <span>${browseState.product.name}</span>`;
+  crumbEl.innerHTML = crumbHTML;
+
+  if (browseState.level === 'vendor') {
+    browseListEl.innerHTML = getVendors().map(v => `
+      <div class="browse-item" data-nav="toVendor" data-vendor="${v}">
+        <div><div class="label">${v}</div><div class="sub">${getProducts(v).length} 項產品</div></div>
+        <div class="arrow">›</div>
+      </div>`).join('');
+  } else if (browseState.level === 'product') {
+    browseListEl.innerHTML = getProducts(browseState.vendor).map(p => `
+      <div class="browse-item" data-nav="toProduct" data-code="${p.code}">
+        <div><div class="label">${p.name}</div><div class="sub">${p.code}</div></div>
+        <div class="arrow">›</div>
+      </div>`).join('');
+  } else if (browseState.level === 'process') {
+    const names = PROC_NAMES[currentLang];
+    browseListEl.innerHTML = browseState.product.pages.map(page => {
+      const codes = guessCodes(page);
+      const isNG = codes.includes('NG');
+      return `
+      <div class="browse-item" data-nav="toPage">
+        <div><div class="label">${page}${isNG ? '' : ''}</div><div class="sub">${isNG ? t.ngLabel : codes.map(c=>names[c]||c).join(' / ')}</div></div>
+        <div class="arrow">›</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+browseListEl.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-nav]');
+  if (!el) return;
+  const nav = el.dataset.nav;
+  if (nav === 'toVendor') { browseState = { level:'product', vendor: el.dataset.vendor, product:null }; }
+  else if (nav === 'toProduct') {
+    const prod = RAW.find(p => p.code === el.dataset.code);
+    browseState = { level:'process', vendor: prod.vendor, product: prod };
+  } else if (nav === 'toPage') { /* 實際部署後這裡會跳轉到該頁面網址 */ }
+  renderBrowse();
+});
+
+crumbEl.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-nav]');
+  if (!el) return;
+  if (el.dataset.nav === 'home') browseState = { level:'vendor', vendor:null, product:null };
+  else if (el.dataset.nav === 'vendor') browseState = { level:'product', vendor: browseState.vendor, product:null };
+  renderBrowse();
+});
+
+/* ===================== Tab 切換 ===================== */
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+/* ===================== 語言切換 ===================== */
+document.querySelectorAll('.lang-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentLang = btn.dataset.lang;
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyLang();
+  });
+});
+
+function applyLang() {
+  const t = I18N[currentLang];
+  document.getElementById('t-eyebrow').textContent = t.eyebrow;
+  document.getElementById('t-title').textContent = t.title;
+  document.getElementById('t-tab-search').textContent = t.tabSearch;
+  document.getElementById('t-tab-browse').textContent = t.tabBrowse;
+  document.getElementById('t-search-label').textContent = t.searchLabel;
+  document.getElementById('t-hint').textContent = t.hint;
+  input.placeholder = t.placeholder;
+  toggle.textContent = codeTable.classList.contains('open') ? t.toggleCodesClose : t.toggleCodesOpen;
+  renderCodeTable();
+  showEmptyState();
+  renderBrowse();
+}
+
+/* ===================== 初始化 ===================== */
+renderCodeTable();
+showEmptyState();
+renderBrowse();
+</script>
+
+</body>
+</html>
