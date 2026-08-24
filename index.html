@@ -56,16 +56,18 @@
   .empty-state { padding: 30px 20px 10px; text-align: center; }
   .empty-state .big-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.5; }
   .empty-state p { font-size: 13px; color: #9AA3AC; line-height: 1.6; }
-  .warn-badge { display: inline-block; background: #FFF3DD; color: #B5791A; font-size: 10.5px; padding: 1px 6px; border-radius: 4px; margin-left: 6px; }
+  .loading-state { padding: 50px 20px; text-align: center; color: #9AA3AC; font-size: 13px; }
+  .error-state { padding: 30px 20px; text-align: center; color: #C24242; font-size: 13px; line-height: 1.6; }
 
   /* Browse mode */
-  .crumb { display:flex; align-items:center; gap:6px; padding:14px 20px 4px; font-size:12.5px; color:#8A94A0; background:#FFFFFF; }
+  .crumb { display:flex; align-items:center; gap:6px; padding:14px 20px 4px; font-size:12.5px; color:#8A94A0; background:#FFFFFF; flex-wrap:wrap; }
   .crumb span.clickable { color:#F5A623; cursor:pointer; font-weight:600; }
   .browse-list { padding: 4px 0 10px; max-height: 480px; overflow-y:auto; }
   .browse-item { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #F0F1F3; cursor:pointer; min-height:56px; }
   .browse-item:active { background:#FFF7EB; }
   .browse-item .label { font-size:15px; font-weight:600; color:#1C2126; }
   .browse-item .sub { font-size:12px; color:#9AA3AC; margin-top:2px; }
+  .ng-tag { color:#C24242; }
 </style>
 </head>
 <body>
@@ -87,13 +89,12 @@
     <div class="tab" data-tab="browse" id="t-tab-browse">瀏覽選單</div>
   </div>
 
-  <!-- 搜尋模式 -->
   <div class="panel active" id="panel-search">
     <div class="search-wrap">
       <div class="search-label" id="t-search-label">輸入工單上的料號＋製程代碼</div>
       <div class="search-box">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="searchInput" placeholder="11C037800900-311" autocomplete="off">
+        <input type="text" id="searchInput" placeholder="11C037800900-311" autocomplete="off" disabled>
       </div>
     </div>
     <div class="hint" id="t-hint">格式：料號-製程代碼，例如 -311。NG 請輸入「料號-NG」</div>
@@ -104,7 +105,6 @@
     <div class="results" id="results"></div>
   </div>
 
-  <!-- 瀏覽模式 -->
   <div class="panel" id="panel-browse">
     <div class="crumb" id="crumb"></div>
     <div class="browse-list" id="browseList"></div>
@@ -112,113 +112,111 @@
 </div>
 
 <p style="text-align:center;font-size:12.5px;color:#8A94A0;margin-top:18px;line-height:1.7;max-width:420px;margin-left:auto;margin-right:auto;">
-  資料抓自網站上目前已建好的真實頁面，<span class="warn-badge">請確認</span> 標記的組合需要人工核對。
+  資料即時讀取自 Google Sheet，管理者更新表格後這裡會自動同步。
 </p>
 
 <script>
+/* ===================== 這裡放你的 Google Sheet 發佈CSV連結 ===================== */
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSIOrCL6G3FWG1wZvKYQHp1G9gu_E4QH9XyHt5r3sN7P3ap-nVR7Fz2mtT1zelamK4Ki8xibr747snh/pub?output=csv";
+
 /* ===================== 語言包 ===================== */
 const I18N = {
   zh: {
-    eyebrow: "掃描 QR CODE 後進入",
-    title: "SOP 標準作業指導書",
-    tabSearch: "快速查詢",
-    tabBrowse: "瀏覽選單",
+    eyebrow: "掃描 QR CODE 後進入", title: "SOP 標準作業指導書",
+    tabSearch: "快速查詢", tabBrowse: "瀏覽選單",
     searchLabel: "輸入工單上的料號＋製程代碼",
     hint: "格式：料號-製程代碼，例如 -311。NG 請輸入「料號-NG」",
-    toggleCodesOpen: "查看製程代碼對照表 ▾",
-    toggleCodesClose: "收起製程代碼對照表 ▴",
+    toggleCodesOpen: "查看製程代碼對照表 ▾", toggleCodesClose: "收起製程代碼對照表 ▴",
     placeholder: "11C037800900-311",
     emptyDefault: "輸入「料號－製程代碼」<br>符合唯一結果會直接開啟",
     noResult: "找不到符合的料號／製程代碼，請確認輸入內容",
     locked: (name, page) => `已鎖定：${name}－${page}<br>正在為您開啟該製程頁面…`,
-    chooseVendor: "請選擇廠商",
-    chooseProduct: "請選擇產品",
-    chooseProcess: "請選擇製程",
-    back: "‹ 返回",
-    home: "首頁",
-    ngLabel: "NG 異常處理"
+    chooseVendor: "請選擇廠商", back: "‹ 返回", home: "首頁", ngLabel: "NG 異常處理",
+    loading: "資料載入中…", loadError: "資料載入失敗，請確認網路連線或稍後再試"
   },
   th: {
-    eyebrow: "หลังจากสแกน QR CODE",
-    title: "คู่มือขั้นตอนการทำงาน (SOP)",
-    tabSearch: "ค้นหาด่วน",
-    tabBrowse: "เมนูเรียกดู",
+    eyebrow: "หลังจากสแกน QR CODE", title: "คู่มือขั้นตอนการทำงาน (SOP)",
+    tabSearch: "ค้นหาด่วน", tabBrowse: "เมนูเรียกดู",
     searchLabel: "กรอกรหัสสินค้า + รหัสกระบวนการ",
     hint: "รูปแบบ: รหัสสินค้า-รหัสกระบวนการ เช่น -311 / NG พิมพ์ -NG",
-    toggleCodesOpen: "ดูตารางรหัสกระบวนการ ▾",
-    toggleCodesClose: "ซ่อนตารางรหัสกระบวนการ ▴",
+    toggleCodesOpen: "ดูตารางรหัสกระบวนการ ▾", toggleCodesClose: "ซ่อนตารางรหัสกระบวนการ ▴",
     placeholder: "11C037800900-311",
     emptyDefault: "กรอก \"รหัสสินค้า-รหัสกระบวนการ\"<br>หากพบผลลัพธ์เดียวจะเปิดหน้าทันที",
     noResult: "ไม่พบรหัสสินค้า/รหัสกระบวนการที่ตรงกัน กรุณาตรวจสอบอีกครั้ง",
     locked: (name, page) => `เลือกแล้ว: ${name}－${page}<br>กำลังเปิดหน้าขั้นตอนนี้…`,
-    chooseVendor: "เลือกผู้ผลิต",
-    chooseProduct: "เลือกสินค้า",
-    chooseProcess: "เลือกกระบวนการ",
-    back: "‹ ย้อนกลับ",
-    home: "หน้าแรก",
-    ngLabel: "การจัดการของเสีย (NG)"
+    chooseVendor: "เลือกผู้ผลิต", back: "‹ ย้อนกลับ", home: "หน้าแรก", ngLabel: "การจัดการของเสีย (NG)",
+    loading: "กำลังโหลดข้อมูล…", loadError: "โหลดข้อมูลไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตหรือลองใหม่"
   }
 };
 let currentLang = 'zh';
 
 const PROC_NAMES = {
-  zh: { "102":"鑄造","311":"鋸切","310":"研磨","604":"校正","503":"噴砂","218":"焊補","605":"去毛邊","602":"檢驗＋包裝","351":"退砂","352":"T4 熱處理","353":"T5 熱處理" },
-  th: { "102":"หล่อขึ้นรูป","311":"ตัด","310":"ขัด","604":"ปรับแนว","503":"พ่นทราย","218":"เชื่อมซ่อม","605":"ลบคม","602":"ตรวจสอบ+บรรจุ","351":"ขจัดทราย","352":"อบชุบ T4","353":"อบชุบ T5" }
+  zh: { "102":"鑄造","311":"鋸切","312":"雷切鋸切","313":"鋸切內","314":"鋸切外","310":"研磨","604":"校正","503":"噴砂","218":"焊補","605":"去毛邊","602":"檢驗＋包裝","603":"檢驗TO加工","606":"漏測","351":"退砂","352":"T4 熱處理","353":"T5 熱處理" },
+  th: { "102":"หล่อขึ้นรูป","311":"ตัด","312":"ตัดเลเซอร์","313":"ตัดด้านใน","314":"ตัดด้านนอก","310":"ขัด","604":"ปรับแนว","503":"พ่นทราย","218":"เชื่อมซ่อม","605":"ลบคม","602":"ตรวจสอบ+บรรจุ","603":"ตรวจสอบก่อนเข้าเครื่อง","606":"ทดสอบรั่วซึม","351":"ขจัดทราย","352":"อบชุบ T4","353":"อบชุบ T5" }
 };
 
-/* ===================== 製程代碼 ===================== */
-const CODE_MAP = {
-  "鑄造": "102", "鋸切": "311", "研磨": "310", "校正": "604",
-  "噴砂": "503", "焊補": "218", "去毛邊": "605", "檢驗": "602",
-  "檢包": "602", "退砂": "351", "T4": "352", "T5": "353"
-};
-function guessCodes(pageName) {
-  const codes = [];
-  for (const key in CODE_MAP) if (pageName.includes(key)) codes.push(CODE_MAP[key]);
-  if (pageName.toUpperCase().includes("NG")) codes.push("NG");
-  return [...new Set(codes)];
+/* ===================== 資料狀態 ===================== */
+let DATA = [];       // 展平後的查詢用資料
+let VENDORS = {};    // 瀏覽模式用: vendor -> [{code,name,pages:[{page,url,procCode}]}]
+let dataLoaded = false;
+let dataError = false;
+
+function csvParse(text) {
+  // 簡單CSV解析,處理逗號分隔與雙引號
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i+1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else if (c === '\r') { /* skip */ }
+      else field += c;
+    }
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows;
 }
 
-const BASE = "https://sites.google.com/view/sop-factory/首頁";
-
-/* ===================== 真實網站資料（部分廠商示範） ===================== */
-const RAW = [
-  { vendor:"旭生", code:"11C037800900", name:"403馬達座", pages:["鋸切雷切-403","鋸切外-403","鋸切內-403","檢包TO 加工","成品檢包-403","NG-403"], path:"旭生/11c037800900-403馬達座" },
-  { vendor:"旭生", code:"11C037801000", name:"404馬達座", pages:["鋸切外-404","鋸切內-404","檢包TO 加工-404","校正-404","成品檢包-404"], path:"旭生/11c037801000-404馬達座" },
-  { vendor:"誠岱", code:"11C005400100", name:"三T大馬達", pages:["鋸切","去毛邊","NG"], path:"誠岱/11c005400100-三t大馬達" },
-  { vendor:"誠岱", code:"11C005400200", name:"新馬達外殼", pages:["鋸切540200","去毛邊540200","NG540200"], path:"誠岱/11c005400200-新馬達外殼" },
-  { vendor:"誠岱", code:"11C005400300", name:"齒輪箱無孔", pages:["鋸切-540300","研磨+漏測","去毛邊+檢包","NG-540300"], path:"誠岱/11c005400300-齒輪箱無孔" },
-  { vendor:"誠岱", code:"11C005400400", name:"齒輪箱有孔", pages:["鋸切","去毛邊","檢包","NG"], path:"誠岱/11c005400400-齒輪箱有孔" },
-  { vendor:"誠岱", code:"11C005400500", name:"電器外殼", pages:["鋸切-5400500","研磨-5400500","去毛邊-5400500","NG-5400500"], path:"誠岱/11c005400500-電器外殼" },
-  { vendor:"美利達", code:"11C038100100", name:"馬達托架039", pages:["鋸切039","研磨039","去毛邊+校正039","檢包-039","NG-039"], path:"美利達/11c038100100-馬達托架039" },
-  { vendor:"美利達", code:"11C038100200", name:"大軸連接", pages:["鋸切-125","去毛邊 + 校正125","檢包125","NG-125"], path:"美利達/11c038100200-大軸連接" },
-  { vendor:"美利達", code:"11C038100400", name:"馬達托架MB6-038", pages:["鋸切-038","去毛邊+校正038","檢包-038","NG-038"], path:"美利達/11c038100400-馬達托架mb6-038" },
-  { vendor:"川方", code:"11C004200100", name:"新索倫10040", pages:["鋸切-4200100","去毛邊4200100","NG-4200100"], path:"川方/11c004200100-新索倫10040" },
-  { vendor:"川方", code:"11C004200200", name:"CWL200索倫", pages:["鋸切-4200200","去毛邊-4200200","NG-4200200"], path:"川方/11c004200200-cwl200索倫" },
-  { vendor:"普萊欣", code:"11C0121025AB", name:"左右旋臂", pages:["鋸切25AB","校正25AB","檢包25AB"], path:"普萊欣/11c0121025ab-左右旋臂" },
-];
-
-// 展開查詢清單（搜尋模式用）
-const DATA = [];
-RAW.forEach(product => {
-  const codeSet = {};
-  product.pages.forEach(page => {
-    guessCodes(page).forEach(c => {
-      if (!codeSet[c]) codeSet[c] = [];
-      codeSet[c].push(page);
-    });
-  });
-  Object.keys(codeSet).forEach(code => {
-    const pages = codeSet[code];
-    const uncertain = pages.length > 1 || pages.some(p => (p.match(/[+＋]/) || []).length > 0);
-    DATA.push({
-      matCode: product.code, procCode: code, vendor: product.vendor, name: product.name,
-      pageLabel: pages.join(" / "),
-      url: BASE + "/" + product.path + "/" + pages[0].toLowerCase().replace(/\s+/g,'-').replace(/\+/g,'-'),
-      uncertain
-    });
-  });
-});
+async function loadData() {
+  try {
+    const res = await fetch(SHEET_CSV_URL);
+    if (!res.ok) throw new Error('fetch failed');
+    const text = await res.text();
+    const rows = csvParse(text).filter(r => r.length > 1 && r[0]);
+    const header = rows[0];
+    const idx = {
+      vendor: header.indexOf('廠商'), code: header.indexOf('料號'),
+      name: header.indexOf('品名'), procCode: header.indexOf('製程代碼'),
+      page: header.indexOf('對應頁面'), url: header.indexOf('網址')
+    };
+    DATA = [];
+    VENDORS = {};
+    for (let i = 1; i < rows.length; i++) {
+      const r = rows[i];
+      if (!r[idx.code]) continue;
+      const item = {
+        vendor: r[idx.vendor], matCode: r[idx.code], name: r[idx.name],
+        procCode: r[idx.procCode], pageLabel: r[idx.page], url: r[idx.url]
+      };
+      DATA.push(item);
+      if (!VENDORS[item.vendor]) VENDORS[item.vendor] = {};
+      if (!VENDORS[item.vendor][item.matCode]) {
+        VENDORS[item.vendor][item.matCode] = { name: item.name, pages: [] };
+      }
+      VENDORS[item.vendor][item.matCode].pages.push(item);
+    }
+    dataLoaded = true;
+  } catch (e) {
+    dataError = true;
+  }
+}
 
 /* ===================== 搜尋模式邏輯 ===================== */
 const input = document.getElementById('searchInput');
@@ -249,7 +247,7 @@ function parseQuery(raw) {
 function jumpTo(item) {
   const t = I18N[currentLang];
   results.innerHTML = `<div class="empty-state"><div class="big-icon">✅</div><p><b style="color:#1C2126">${t.locked(item.name, item.pageLabel)}</b></p></div>`;
-  // 實際部署後: window.location.href = item.url;
+  window.location.href = item.url;
 }
 
 function render(list) {
@@ -257,17 +255,24 @@ function render(list) {
   if (list.length === 0) { results.innerHTML = `<div class="no-result">${t.noResult}</div>`; return; }
   if (list.length === 1) { jumpTo(list[0]); return; }
   results.innerHTML = list.map(item => `
-    <div class="result-item">
+    <div class="result-item" data-url="${item.url}">
       <div class="result-left">
         <div class="result-code">${item.matCode} · ${item.procCode}</div>
-        <div class="result-name">${item.name}${item.uncertain ? '<span class="warn-badge">請確認</span>' : ''}</div>
+        <div class="result-name">${item.name}</div>
         <div class="result-meta"><span class="vendor${item.procCode==='NG' ? ' ng':''}">${item.vendor}</span>${item.pageLabel}</div>
       </div>
       <div class="arrow">›</div>
     </div>`).join('');
 }
 
+results.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-url]');
+  if (el) window.location.href = el.dataset.url;
+});
+
 function showEmptyState() {
+  if (!dataLoaded && !dataError) { results.innerHTML = `<div class="loading-state">${I18N[currentLang].loading}</div>`; return; }
+  if (dataError) { results.innerHTML = `<div class="error-state">${I18N[currentLang].loadError}</div>`; return; }
   results.innerHTML = `<div class="empty-state"><div class="big-icon">🔍</div><p>${I18N[currentLang].emptyDefault}</p></div>`;
 }
 
@@ -286,41 +291,39 @@ input.addEventListener('input', () => {
 /* ===================== 瀏覽模式邏輯 ===================== */
 const crumbEl = document.getElementById('crumb');
 const browseListEl = document.getElementById('browseList');
-let browseState = { level: 'vendor', vendor: null, product: null };
-
-function getVendors() { return [...new Set(RAW.map(p => p.vendor))]; }
-function getProducts(vendor) { return RAW.filter(p => p.vendor === vendor); }
+let browseState = { level: 'vendor', vendor: null, matCode: null };
 
 function renderBrowse() {
   const t = I18N[currentLang];
   let crumbHTML = `<span class="clickable" data-nav="home">${t.home}</span>`;
-  if (browseState.vendor) crumbHTML += ` › <span class="${browseState.product ? 'clickable' : ''}" data-nav="vendor">${browseState.vendor}</span>`;
-  if (browseState.product) crumbHTML += ` › <span>${browseState.product.name}</span>`;
+  if (browseState.vendor) crumbHTML += ` › <span class="${browseState.matCode ? 'clickable' : ''}" data-nav="vendor">${browseState.vendor}</span>`;
+  if (browseState.matCode) crumbHTML += ` › <span>${VENDORS[browseState.vendor][browseState.matCode].name}</span>`;
   crumbEl.innerHTML = crumbHTML;
 
+  if (!dataLoaded && !dataError) { browseListEl.innerHTML = `<div class="loading-state">${t.loading}</div>`; return; }
+  if (dataError) { browseListEl.innerHTML = `<div class="error-state">${t.loadError}</div>`; return; }
+
   if (browseState.level === 'vendor') {
-    browseListEl.innerHTML = getVendors().map(v => `
+    browseListEl.innerHTML = Object.keys(VENDORS).map(v => `
       <div class="browse-item" data-nav="toVendor" data-vendor="${v}">
-        <div><div class="label">${v}</div><div class="sub">${getProducts(v).length} 項產品</div></div>
+        <div><div class="label">${v}</div><div class="sub">${Object.keys(VENDORS[v]).length} 項產品</div></div>
         <div class="arrow">›</div>
       </div>`).join('');
   } else if (browseState.level === 'product') {
-    browseListEl.innerHTML = getProducts(browseState.vendor).map(p => `
-      <div class="browse-item" data-nav="toProduct" data-code="${p.code}">
-        <div><div class="label">${p.name}</div><div class="sub">${p.code}</div></div>
+    const products = VENDORS[browseState.vendor];
+    browseListEl.innerHTML = Object.keys(products).map(code => `
+      <div class="browse-item" data-nav="toProduct" data-code="${code}">
+        <div><div class="label">${products[code].name}</div><div class="sub">${code}</div></div>
         <div class="arrow">›</div>
       </div>`).join('');
   } else if (browseState.level === 'process') {
     const names = PROC_NAMES[currentLang];
-    browseListEl.innerHTML = browseState.product.pages.map(page => {
-      const codes = guessCodes(page);
-      const isNG = codes.includes('NG');
-      return `
-      <div class="browse-item" data-nav="toPage">
-        <div><div class="label">${page}${isNG ? '' : ''}</div><div class="sub">${isNG ? t.ngLabel : codes.map(c=>names[c]||c).join(' / ')}</div></div>
+    const product = VENDORS[browseState.vendor][browseState.matCode];
+    browseListEl.innerHTML = product.pages.map(p => `
+      <div class="browse-item" data-nav="toPage" data-url="${p.url}">
+        <div><div class="label ${p.procCode==='NG' ? 'ng-tag':''}">${p.pageLabel}</div><div class="sub">${p.procCode==='NG' ? t.ngLabel : (names[p.procCode]||p.procCode)}</div></div>
         <div class="arrow">›</div>
-      </div>`;
-    }).join('');
+      </div>`).join('');
   }
 }
 
@@ -328,19 +331,17 @@ browseListEl.addEventListener('click', (e) => {
   const el = e.target.closest('[data-nav]');
   if (!el) return;
   const nav = el.dataset.nav;
-  if (nav === 'toVendor') { browseState = { level:'product', vendor: el.dataset.vendor, product:null }; }
-  else if (nav === 'toProduct') {
-    const prod = RAW.find(p => p.code === el.dataset.code);
-    browseState = { level:'process', vendor: prod.vendor, product: prod };
-  } else if (nav === 'toPage') { /* 實際部署後這裡會跳轉到該頁面網址 */ }
+  if (nav === 'toVendor') { browseState = { level:'product', vendor: el.dataset.vendor, matCode:null }; }
+  else if (nav === 'toProduct') { browseState = { level:'process', vendor: browseState.vendor, matCode: el.dataset.code }; }
+  else if (nav === 'toPage') { window.location.href = el.dataset.url; return; }
   renderBrowse();
 });
 
 crumbEl.addEventListener('click', (e) => {
   const el = e.target.closest('[data-nav]');
   if (!el) return;
-  if (el.dataset.nav === 'home') browseState = { level:'vendor', vendor:null, product:null };
-  else if (el.dataset.nav === 'vendor') browseState = { level:'product', vendor: browseState.vendor, product:null };
+  if (el.dataset.nav === 'home') browseState = { level:'vendor', vendor:null, matCode:null };
+  else if (el.dataset.nav === 'vendor') browseState = { level:'product', vendor: browseState.vendor, matCode:null };
   renderBrowse();
 });
 
@@ -380,9 +381,17 @@ function applyLang() {
 }
 
 /* ===================== 初始化 ===================== */
-renderCodeTable();
-showEmptyState();
-renderBrowse();
+async function init() {
+  renderCodeTable();
+  showEmptyState();
+  renderBrowse();
+  await loadData();
+  input.disabled = false;
+  renderCodeTable();
+  showEmptyState();
+  renderBrowse();
+}
+init();
 </script>
 
 </body>
