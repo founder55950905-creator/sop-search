@@ -22,23 +22,23 @@
   .lang-btn.active { background:#F5A623; color:#1C2126; }
 
   .tabs { display:flex; background:#FFFFFF; border-bottom: 1px solid #E4E7EB; }
-  .tab { flex:1; text-align:center; padding:13px 8px; font-size:13.5px; font-weight:600; color:#9AA3AC; cursor:pointer; border-bottom:3px solid transparent; }
+  .tab { flex:1; text-align:center; padding:13px 4px; font-size:12.5px; font-weight:600; color:#9AA3AC; cursor:pointer; border-bottom:3px solid transparent; }
   .tab.active { color:#1C2126; border-bottom-color:#F5A623; }
 
   .panel { display:none; }
   .panel.active { display:block; }
 
   .search-wrap { padding: 18px 20px 8px; background: #FFFFFF; }
-  .search-label { font-size: 16px; color: #6B7684; margin-bottom: 8px; }
+  .search-label { font-size: 12px; color: #6B7684; margin-bottom: 8px; }
   .search-box { display: flex; align-items: center; background: #F1F3F5; border: 2px solid #F5A623; border-radius: 10px; padding: 14px; }
   .search-box svg { flex-shrink: 0; margin-right: 8px; }
   #searchInput { border: none; background: transparent; outline: none; font-size: 18px; width: 100%; letter-spacing: 0.5px; color: #1C2126; }
   #searchInput::placeholder { color: #A2ABB5; }
   .hint { font-size: 11.5px; color: #9AA3AC; padding: 8px 20px 10px; background: #FFFFFF; }
-  .code-table-toggle { font-size: 16px; color: #F5A623; padding: 0 20px 12px; background: #FFFFFF; cursor: pointer; text-decoration: underline; }
+  .code-table-toggle { font-size: 12px; color: #F5A623; padding: 0 20px 12px; background: #FFFFFF; cursor: pointer; text-decoration: underline; }
   .code-table { display: none; padding: 4px 20px 14px; background: #FBFBFC; border-bottom: 1px solid #E4E7EB; }
   .code-table.open { display: block; }
-  .code-table table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  .code-table table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
   .code-table td { padding: 4px 6px; border-bottom: 1px solid #EEE; }
   .code-table td:last-child { font-weight: 700; color: #F5A623; text-align: right; }
 
@@ -68,6 +68,36 @@
   .browse-item .label { font-size:15px; font-weight:600; color:#1C2126; }
   .browse-item .sub { font-size:12px; color:#9AA3AC; margin-top:2px; }
   .ng-tag { color:#C24242; }
+
+  /* NG回報表單 */
+  .ng-form { padding: 18px 20px 24px; }
+  .ng-field { margin-bottom: 16px; }
+  .ng-field label { display:block; font-size:12.5px; color:#6B7684; margin-bottom: 6px; font-weight:600; }
+  .ng-field input[type="text"], .ng-field select, .ng-field textarea {
+    width:100%; border:1.5px solid #E4E7EB; border-radius:8px; padding:11px 12px;
+    font-size:15px; color:#1C2126; background:#FBFBFC; font-family:inherit;
+  }
+  .ng-field textarea { resize:vertical; min-height:64px; }
+  .ng-field input[type="text"]:focus, .ng-field select:focus, .ng-field textarea:focus {
+    outline:none; border-color:#F5A623; background:#FFFFFF;
+  }
+  .photo-upload-box {
+    border:2px dashed #E4E7EB; border-radius:10px; padding:20px; text-align:center;
+    cursor:pointer; background:#FBFBFC; position:relative;
+  }
+  .photo-upload-box.has-photo { border-style:solid; padding:0; overflow:hidden; }
+  .photo-upload-box img { width:100%; display:block; max-height:220px; object-fit:cover; }
+  .photo-upload-box .upload-hint { font-size:13px; color:#9AA3AC; }
+  .photo-upload-box .upload-icon { font-size:26px; margin-bottom:6px; }
+  .ng-field input[type="file"] { display:none; }
+  .ng-submit-btn {
+    width:100%; background:#F5A623; color:#1C2126; border:none; border-radius:10px;
+    padding:14px; font-size:16px; font-weight:700; cursor:pointer; margin-top:4px;
+  }
+  .ng-submit-btn:disabled { background:#E4E7EB; color:#9AA3AC; }
+  .ng-status { text-align:center; padding:20px; }
+  .ng-status .big-icon { font-size:36px; margin-bottom:10px; }
+  .ng-status p { font-size:14px; color:#6B7684; line-height:1.6; }
 </style>
 </head>
 <body>
@@ -87,6 +117,7 @@
   <div class="tabs">
     <div class="tab active" data-tab="search" id="t-tab-search">快速查詢</div>
     <div class="tab" data-tab="browse" id="t-tab-browse">瀏覽選單</div>
+    <div class="tab" data-tab="ng" id="t-tab-ng">NG回報</div>
   </div>
 
   <div class="panel active" id="panel-search">
@@ -109,6 +140,44 @@
     <div class="crumb" id="crumb"></div>
     <div class="browse-list" id="browseList"></div>
   </div>
+
+  <!-- NG回報表單 -->
+  <div class="panel" id="panel-ng">
+    <div class="ng-form" id="ngFormWrap">
+      <div class="ng-field">
+        <label id="t-ng-matcode">料號</label>
+        <input type="text" id="ngMatCode" placeholder="11C037800900">
+      </div>
+      <div class="ng-field">
+        <label id="t-ng-process">製程</label>
+        <select id="ngProcess"></select>
+      </div>
+      <div class="ng-field">
+        <label id="t-ng-type">異常類型</label>
+        <select id="ngType">
+          <option value="裂痕">裂痕</option>
+          <option value="尺寸異常">尺寸異常</option>
+          <option value="外觀異常">外觀異常</option>
+          <option value="缺料">缺料</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+      <div class="ng-field">
+        <label id="t-ng-note">備註（選填）</label>
+        <textarea id="ngNote" placeholder=""></textarea>
+      </div>
+      <div class="ng-field">
+        <label id="t-ng-photo">拍照上傳</label>
+        <input type="file" id="ngPhotoInput" accept="image/*" capture="environment">
+        <div class="photo-upload-box" id="ngPhotoBox">
+          <div class="upload-icon">📷</div>
+          <div class="upload-hint" id="t-ng-photo-hint">點此拍照或選擇照片</div>
+        </div>
+      </div>
+      <button class="ng-submit-btn" id="ngSubmitBtn">送出回報</button>
+    </div>
+    <div class="ng-status" id="ngStatus" style="display:none;"></div>
+  </div>
 </div>
 
 <p style="text-align:center;font-size:12.5px;color:#8A94A0;margin-top:18px;line-height:1.7;max-width:420px;margin-left:auto;margin-right:auto;">
@@ -118,6 +187,9 @@
 <script>
 /* ===================== 這裡放你的 Google Sheet 發佈CSV連結 ===================== */
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSIOrCL6G3FWG1wZvKYQHp1G9gu_E4QH9XyHt5r3sN7P3ap-nVR7Fz2mtT1zelamK4Ki8xibr747snh/pub?output=csv";
+
+/* ===================== NG回報 Apps Script Web App 網址 ===================== */
+const NG_REPORT_URL = "https://script.google.com/macros/s/AKfycbxL3Ldt4amqkcuz3d24UPuRgFwdV6tcU-EWKRSpvwnoQTMvvCBh7KdVsgsQ39TfcAU-Ag/exec";
 
 /* ===================== 語言包 ===================== */
 const I18N = {
@@ -132,7 +204,13 @@ const I18N = {
     noResult: "找不到符合的料號／製程代碼，請確認輸入內容",
     locked: (name, page) => `已鎖定：${name}－${page}<br>正在為您開啟該製程頁面…`,
     chooseVendor: "請選擇廠商", back: "‹ 返回", home: "首頁", ngLabel: "NG 異常處理",
-    loading: "資料載入中…", loadError: "資料載入失敗，請確認網路連線或稍後再試"
+    loading: "資料載入中…", loadError: "資料載入失敗，請確認網路連線或稍後再試",
+    tabNg: "NG回報", ngMatCode: "料號", ngProcess: "製程", ngTypeLabel: "異常類型",
+    ngNote: "備註（選填）", ngPhoto: "拍照上傳", ngPhotoHint: "點此拍照或選擇照片",
+    ngSubmit: "送出回報", ngSubmitting: "送出中…",
+    ngSuccessTitle: "回報成功", ngSuccessDesc: "已收到您的NG回報，謝謝！",
+    ngErrorTitle: "送出失敗", ngErrorDesc: "請檢查網路連線後再試一次",
+    ngAgain: "再回報一筆", ngNeedMatCode: "請輸入料號"
   },
   th: {
     eyebrow: "หลังจากสแกน QR CODE", title: "คู่มือขั้นตอนการทำงาน (SOP)",
@@ -145,7 +223,13 @@ const I18N = {
     noResult: "ไม่พบรหัสสินค้า/รหัสกระบวนการที่ตรงกัน กรุณาตรวจสอบอีกครั้ง",
     locked: (name, page) => `เลือกแล้ว: ${name}－${page}<br>กำลังเปิดหน้าขั้นตอนนี้…`,
     chooseVendor: "เลือกผู้ผลิต", back: "‹ ย้อนกลับ", home: "หน้าแรก", ngLabel: "การจัดการของเสีย (NG)",
-    loading: "กำลังโหลดข้อมูล…", loadError: "โหลดข้อมูลไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตหรือลองใหม่"
+    loading: "กำลังโหลดข้อมูล…", loadError: "โหลดข้อมูลไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตหรือลองใหม่",
+    tabNg: "รายงานของเสีย", ngMatCode: "รหัสสินค้า", ngProcess: "กระบวนการ", ngTypeLabel: "ประเภทความผิดปกติ",
+    ngNote: "หมายเหตุ (ไม่บังคับ)", ngPhoto: "ถ่ายภาพ/อัปโหลด", ngPhotoHint: "แตะเพื่อถ่ายภาพหรือเลือกรูป",
+    ngSubmit: "ส่งรายงาน", ngSubmitting: "กำลังส่ง…",
+    ngSuccessTitle: "ส่งสำเร็จ", ngSuccessDesc: "ได้รับรายงานของเสียแล้ว ขอบคุณค่ะ",
+    ngErrorTitle: "ส่งไม่สำเร็จ", ngErrorDesc: "กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่",
+    ngAgain: "รายงานอีกครั้ง", ngNeedMatCode: "กรุณากรอกรหัสสินค้า"
   }
 };
 let currentLang = 'zh';
@@ -355,6 +439,94 @@ document.querySelectorAll('.tab').forEach(tab => {
   });
 });
 
+/* ===================== NG回報邏輯 ===================== */
+let ngPhotoBase64 = '';
+
+function populateNgProcessOptions() {
+  const select = document.getElementById('ngProcess');
+  const names = PROC_NAMES[currentLang];
+  select.innerHTML = Object.keys(names).map(code => `<option value="${names[code]}">${names[code]}</option>`).join('')
+    + `<option value="NG">NG</option>`;
+}
+
+document.getElementById('ngPhotoBox').addEventListener('click', () => {
+  document.getElementById('ngPhotoInput').click();
+});
+
+document.getElementById('ngPhotoInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    ngPhotoBase64 = ev.target.result;
+    const box = document.getElementById('ngPhotoBox');
+    box.classList.add('has-photo');
+    box.innerHTML = `<img src="${ngPhotoBase64}">`;
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('ngSubmitBtn').addEventListener('click', async () => {
+  const t = I18N[currentLang];
+  const matCode = document.getElementById('ngMatCode').value.trim();
+  const process = document.getElementById('ngProcess').value;
+  const ngType = document.getElementById('ngType').value;
+  const note = document.getElementById('ngNote').value.trim();
+
+  if (!matCode) {
+    alert(t.ngNeedMatCode);
+    return;
+  }
+
+  const btn = document.getElementById('ngSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = t.ngSubmitting;
+
+  try {
+    await fetch(NG_REPORT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ matCode, process, ngType, note, photoBase64: ngPhotoBase64 })
+    });
+
+    document.getElementById('ngFormWrap').style.display = 'none';
+    const statusEl = document.getElementById('ngStatus');
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = `
+      <div class="big-icon">✅</div>
+      <p><b style="color:#1C2126">${t.ngSuccessTitle}</b><br>${t.ngSuccessDesc}</p>
+      <button class="ng-submit-btn" id="ngAgainBtn" style="margin-top:14px;">${t.ngAgain}</button>
+    `;
+    document.getElementById('ngAgainBtn').addEventListener('click', resetNgForm);
+  } catch (err) {
+    document.getElementById('ngFormWrap').style.display = 'none';
+    const statusEl = document.getElementById('ngStatus');
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = `
+      <div class="big-icon">⚠️</div>
+      <p><b style="color:#C24242">${t.ngErrorTitle}</b><br>${t.ngErrorDesc}</p>
+      <button class="ng-submit-btn" id="ngAgainBtn" style="margin-top:14px;">${t.ngAgain}</button>
+    `;
+    document.getElementById('ngAgainBtn').addEventListener('click', resetNgForm);
+  }
+});
+
+function resetNgForm() {
+  document.getElementById('ngMatCode').value = '';
+  document.getElementById('ngNote').value = '';
+  document.getElementById('ngPhotoInput').value = '';
+  ngPhotoBase64 = '';
+  const box = document.getElementById('ngPhotoBox');
+  box.classList.remove('has-photo');
+  box.innerHTML = `<div class="upload-icon">📷</div><div class="upload-hint" id="t-ng-photo-hint">${I18N[currentLang].ngPhotoHint}</div>`;
+  const btn = document.getElementById('ngSubmitBtn');
+  btn.disabled = false;
+  btn.textContent = I18N[currentLang].ngSubmit;
+  document.getElementById('ngStatus').style.display = 'none';
+  document.getElementById('ngFormWrap').style.display = 'block';
+}
+
 /* ===================== 語言切換 ===================== */
 document.querySelectorAll('.lang-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -371,11 +543,21 @@ function applyLang() {
   document.getElementById('t-title').textContent = t.title;
   document.getElementById('t-tab-search').textContent = t.tabSearch;
   document.getElementById('t-tab-browse').textContent = t.tabBrowse;
+  document.getElementById('t-tab-ng').textContent = t.tabNg;
   document.getElementById('t-search-label').textContent = t.searchLabel;
   document.getElementById('t-hint').textContent = t.hint;
+  document.getElementById('t-ng-matcode').textContent = t.ngMatCode;
+  document.getElementById('t-ng-process').textContent = t.ngProcess;
+  document.getElementById('t-ng-type').textContent = t.ngTypeLabel;
+  document.getElementById('t-ng-note').textContent = t.ngNote;
+  document.getElementById('t-ng-photo').textContent = t.ngPhoto;
+  const photoHintEl = document.getElementById('t-ng-photo-hint');
+  if (photoHintEl) photoHintEl.textContent = t.ngPhotoHint;
+  document.getElementById('ngSubmitBtn').textContent = t.ngSubmit;
   input.placeholder = t.placeholder;
   toggle.textContent = codeTable.classList.contains('open') ? t.toggleCodesClose : t.toggleCodesOpen;
   renderCodeTable();
+  populateNgProcessOptions();
   showEmptyState();
   renderBrowse();
 }
@@ -383,6 +565,7 @@ function applyLang() {
 /* ===================== 初始化 ===================== */
 async function init() {
   renderCodeTable();
+  populateNgProcessOptions();
   showEmptyState();
   renderBrowse();
   await loadData();
@@ -395,4 +578,5 @@ init();
 </script>
 
 </body>
+</html>body>
 </html>
