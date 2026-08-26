@@ -154,13 +154,7 @@
       </div>
       <div class="ng-field">
         <label id="t-ng-type">異常類型</label>
-        <select id="ngType">
-          <option value="裂痕">裂痕</option>
-          <option value="尺寸異常">尺寸異常</option>
-          <option value="外觀異常">外觀異常</option>
-          <option value="缺料">缺料</option>
-          <option value="其他">其他</option>
-        </select>
+        <select id="ngType"></select>
       </div>
       <div class="ng-field">
         <label id="t-ng-note">備註（選填）</label>
@@ -238,6 +232,18 @@ const PROC_NAMES = {
   zh: { "102":"鑄造","311":"鋸切","312":"雷切鋸切","313":"鋸切內","314":"鋸切外","310":"研磨","604":"校正","503":"噴砂","218":"焊補","605":"去毛邊","602":"檢驗＋包裝","603":"檢驗TO加工","606":"漏測","351":"退砂","352":"T4 熱處理","353":"T5 熱處理" },
   th: { "102":"หล่อขึ้นรูป","311":"ตัด","312":"ตัดเลเซอร์","313":"ตัดด้านใน","314":"ตัดด้านนอก","310":"ขัด","604":"ปรับแนว","503":"พ่นทราย","218":"เชื่อมซ่อม","605":"ลบคม","602":"ตรวจสอบ+บรรจุ","603":"ตรวจสอบก่อนเข้าเครื่อง","606":"ทดสอบรั่วซึม","351":"ขจัดทราย","352":"อบชุบ T4","353":"อบชุบ T5" }
 };
+
+/* NG異常類型：value為固定寫入Sheet的值(保持中文，避免同一欄位中泰文混雜難以統計)，顯示文字依語言切換 */
+const NG_TYPES = [
+  { value: "鑄缺", zh: "鑄缺", th: "หล่อบกพร่อง" },
+  { value: "鋁水不足", zh: "鋁水不足", th: "น้ำอลูมิเนียมไม่พอ" },
+  { value: "鋸切不良", zh: "鋸切不良", th: "ตัดไม่ได้มาตรฐาน" },
+  { value: "收縮", zh: "收縮", th: "การหดตัว" },
+  { value: "夾渣", zh: "夾渣", th: "สิ่งเจือปน" },
+  { value: "毛邊過大", zh: "毛邊過大", th: "ครีบเกินขนาด" },
+  { value: "尺寸異常", zh: "尺寸異常", th: "ขนาดผิดปกติ" },
+  { value: "其他", zh: "其他", th: "อื่นๆ" }
+];
 
 /* ===================== 資料狀態 ===================== */
 let DATA = [];       // 展平後的查詢用資料
@@ -449,6 +455,11 @@ function populateNgProcessOptions() {
     + `<option value="NG">NG</option>`;
 }
 
+function populateNgTypeOptions() {
+  const select = document.getElementById('ngType');
+  select.innerHTML = NG_TYPES.map(t => `<option value="${t.value}">${t[currentLang]}</option>`).join('');
+}
+
 document.getElementById('ngPhotoBox').addEventListener('click', () => {
   document.getElementById('ngPhotoInput').click();
 });
@@ -558,6 +569,7 @@ function applyLang() {
   toggle.textContent = codeTable.classList.contains('open') ? t.toggleCodesClose : t.toggleCodesOpen;
   renderCodeTable();
   populateNgProcessOptions();
+  populateNgTypeOptions();
   showEmptyState();
   renderBrowse();
 }
@@ -566,6 +578,7 @@ function applyLang() {
 async function init() {
   renderCodeTable();
   populateNgProcessOptions();
+  populateNgTypeOptions();
   showEmptyState();
   renderBrowse();
   await loadData();
