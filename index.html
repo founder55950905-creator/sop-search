@@ -1,582 +1,71 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SOP 標準作業指導書</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: "PingFang TC", "Microsoft JhengHei", "Noto Sans Thai", -apple-system, sans-serif;
-    background: #EDEFF1;
-    color: #1C2126;
-    min-height: 100vh;
-    padding: 24px 16px 60px;
-  }
-  .phone { max-width: 420px; margin: 0 auto; background: #FFFFFF; border-radius: 18px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.12); }
-  .topbar { background: #1C2126; padding: 16px 20px 14px; display:flex; justify-content:space-between; align-items:flex-start; }
-  .topbar .eyebrow { font-size: 11px; letter-spacing: 2px; color: #8A94A0; margin-bottom: 4px; }
-  .topbar h1 { font-size: 18px; font-weight: 700; color: #FFFFFF; letter-spacing: 0.5px; }
-  .lang-switch { display:flex; background:#2A313A; border-radius:8px; overflow:hidden; flex-shrink:0; }
-  .lang-btn { padding:6px 10px; font-size:12px; color:#8A94A0; background:transparent; border:none; cursor:pointer; font-weight:600; }
-  .lang-btn.active { background:#F5A623; color:#1C2126; }
+/**
+ * NG回報系統 - Google Apps Script 後端
+ * 功能:接收作業員回報的料號、製程、異常類型、備註、照片
+ *      將資料寫入 Google Sheet,照片存進 Google 雲端硬碟並取得連結
+ *
+ * 使用方式:
+ * 1. 這支程式要貼在「NG回報紀錄」這張 Google Sheet 綁定的 Apps Script 裡
+ * 2. 部署為 Web應用程式,執行身份選「我」,存取權限選「任何人」
+ * 3. 部署後取得的網址,提供給前端查詢工具使用
+ */
 
-  .tabs { display:flex; background:#FFFFFF; border-bottom: 1px solid #E4E7EB; }
-  .tab { flex:1; text-align:center; padding:13px 4px; font-size:12.5px; font-weight:600; color:#9AA3AC; cursor:pointer; border-bottom:3px solid transparent; }
-  .tab.active { color:#1C2126; border-bottom-color:#F5A623; }
-
-  .panel { display:none; }
-  .panel.active { display:block; }
-
-  .search-wrap { padding: 18px 20px 8px; background: #FFFFFF; }
-  .search-label { font-size: 12px; color: #6B7684; margin-bottom: 8px; }
-  .search-box { display: flex; align-items: center; background: #F1F3F5; border: 2px solid #F5A623; border-radius: 10px; padding: 14px; }
-  .search-box svg { flex-shrink: 0; margin-right: 8px; }
-  #searchInput { border: none; background: transparent; outline: none; font-size: 18px; width: 100%; letter-spacing: 0.5px; color: #1C2126; }
-  #searchInput::placeholder { color: #A2ABB5; }
-  .hint { font-size: 11.5px; color: #9AA3AC; padding: 8px 20px 10px; background: #FFFFFF; }
-  .code-table-toggle { font-size: 12px; color: #F5A623; padding: 0 20px 12px; background: #FFFFFF; cursor: pointer; text-decoration: underline; }
-  .code-table { display: none; padding: 4px 20px 14px; background: #FBFBFC; border-bottom: 1px solid #E4E7EB; }
-  .code-table.open { display: block; }
-  .code-table table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-  .code-table td { padding: 4px 6px; border-bottom: 1px solid #EEE; }
-  .code-table td:last-child { font-weight: 700; color: #F5A623; text-align: right; }
-
-  .results { padding: 6px 0 10px; max-height: 440px; overflow-y: auto; }
-  .result-item { display: flex; justify-content: space-between; align-items: center; padding: 17px 20px; border-bottom: 1px solid #F0F1F3; cursor: pointer; min-height: 60px; }
-  .result-item:active { background: #FFF7EB; }
-  .result-left { flex: 1; min-width: 0; }
-  .result-code { font-size: 11px; color: #F5A623; font-weight: 700; letter-spacing: 0.5px; font-family: "SF Mono", Consolas, monospace; }
-  .result-name { font-size: 15px; font-weight: 600; color: #1C2126; margin-top: 2px; }
-  .result-meta { font-size: 12px; color: #8A94A0; margin-top: 3px; }
-  .result-meta .vendor { display: inline-block; background: #EEF1F4; padding: 1px 7px; border-radius: 4px; margin-right: 6px; color: #5A6572; }
-  .result-meta .ng { background:#FDECEC; color:#C24242; }
-  .arrow { color: #C6CBD1; margin-left: 10px; flex-shrink: 0; }
-  .no-result { padding: 40px 20px; text-align: center; color: #A2ABB5; font-size: 13px; }
-  .empty-state { padding: 30px 20px 10px; text-align: center; }
-  .empty-state .big-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.5; }
-  .empty-state p { font-size: 13px; color: #9AA3AC; line-height: 1.6; }
-  .loading-state { padding: 50px 20px; text-align: center; color: #9AA3AC; font-size: 13px; }
-  .error-state { padding: 30px 20px; text-align: center; color: #C24242; font-size: 13px; line-height: 1.6; }
-
-  /* Browse mode */
-  .crumb { display:flex; align-items:center; gap:6px; padding:14px 20px 4px; font-size:12.5px; color:#8A94A0; background:#FFFFFF; flex-wrap:wrap; }
-  .crumb span.clickable { color:#F5A623; cursor:pointer; font-weight:600; }
-  .browse-list { padding: 4px 0 10px; max-height: 480px; overflow-y:auto; }
-  .browse-item { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #F0F1F3; cursor:pointer; min-height:56px; }
-  .browse-item:active { background:#FFF7EB; }
-  .browse-item .label { font-size:15px; font-weight:600; color:#1C2126; }
-  .browse-item .sub { font-size:12px; color:#9AA3AC; margin-top:2px; }
-  .ng-tag { color:#C24242; }
-
-  /* NG回報表單 */
-  .ng-form { padding: 18px 20px 24px; }
-  .ng-field { margin-bottom: 16px; }
-  .ng-field label { display:block; font-size:12.5px; color:#6B7684; margin-bottom: 6px; font-weight:600; }
-  .ng-field input[type="text"], .ng-field select, .ng-field textarea {
-    width:100%; border:1.5px solid #E4E7EB; border-radius:8px; padding:11px 12px;
-    font-size:15px; color:#1C2126; background:#FBFBFC; font-family:inherit;
-  }
-  .ng-field textarea { resize:vertical; min-height:64px; }
-  .ng-field input[type="text"]:focus, .ng-field select:focus, .ng-field textarea:focus {
-    outline:none; border-color:#F5A623; background:#FFFFFF;
-  }
-  .photo-upload-box {
-    border:2px dashed #E4E7EB; border-radius:10px; padding:20px; text-align:center;
-    cursor:pointer; background:#FBFBFC; position:relative;
-  }
-  .photo-upload-box.has-photo { border-style:solid; padding:0; overflow:hidden; }
-  .photo-upload-box img { width:100%; display:block; max-height:220px; object-fit:cover; }
-  .photo-upload-box .upload-hint { font-size:13px; color:#9AA3AC; }
-  .photo-upload-box .upload-icon { font-size:26px; margin-bottom:6px; }
-  .ng-field input[type="file"] { display:none; }
-  .ng-submit-btn {
-    width:100%; background:#F5A623; color:#1C2126; border:none; border-radius:10px;
-    padding:14px; font-size:16px; font-weight:700; cursor:pointer; margin-top:4px;
-  }
-  .ng-submit-btn:disabled { background:#E4E7EB; color:#9AA3AC; }
-  .ng-status { text-align:center; padding:20px; }
-  .ng-status .big-icon { font-size:36px; margin-bottom:10px; }
-  .ng-status p { font-size:14px; color:#6B7684; line-height:1.6; }
-</style>
-</head>
-<body>
-
-<div class="phone">
-  <div class="topbar">
-    <div>
-      <div class="eyebrow" id="t-eyebrow">掃描 QR CODE 後進入</div>
-      <h1 id="t-title">SOP 標準作業指導書</h1>
-    </div>
-    <div class="lang-switch">
-      <button class="lang-btn active" data-lang="zh">中文</button>
-      <button class="lang-btn" data-lang="th">ไทย</button>
-    </div>
-  </div>
-
-  <div class="tabs">
-    <div class="tab active" data-tab="search" id="t-tab-search">快速查詢</div>
-    <div class="tab" data-tab="browse" id="t-tab-browse">瀏覽選單</div>
-    <div class="tab" data-tab="ng" id="t-tab-ng">NG回報</div>
-  </div>
-
-  <div class="panel active" id="panel-search">
-    <div class="search-wrap">
-      <div class="search-label" id="t-search-label">輸入工單上的料號＋製程代碼</div>
-      <div class="search-box">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="searchInput" placeholder="11C037800900-311" autocomplete="off" disabled>
-      </div>
-    </div>
-    <div class="hint" id="t-hint">格式：料號-製程代碼，例如 -311。NG 請輸入「料號-NG」</div>
-    <div class="code-table-toggle" id="toggleCodes">查看製程代碼對照表 ▾</div>
-    <div class="code-table" id="codeTable">
-      <table id="codeTableBody"></table>
-    </div>
-    <div class="results" id="results"></div>
-  </div>
-
-  <div class="panel" id="panel-browse">
-    <div class="crumb" id="crumb"></div>
-    <div class="browse-list" id="browseList"></div>
-  </div>
-
-  <!-- NG回報表單 -->
-  <div class="panel" id="panel-ng">
-    <div class="ng-form" id="ngFormWrap">
-      <div class="ng-field">
-        <label id="t-ng-matcode">料號</label>
-        <input type="text" id="ngMatCode" placeholder="11C037800900">
-      </div>
-      <div class="ng-field">
-        <label id="t-ng-process">製程</label>
-        <select id="ngProcess"></select>
-      </div>
-      <div class="ng-field">
-        <label id="t-ng-type">異常類型</label>
-        <select id="ngType">
-          <option value="裂痕">裂痕</option>
-          <option value="尺寸異常">尺寸異常</option>
-          <option value="外觀異常">外觀異常</option>
-          <option value="缺料">缺料</option>
-          <option value="其他">其他</option>
-        </select>
-      </div>
-      <div class="ng-field">
-        <label id="t-ng-note">備註（選填）</label>
-        <textarea id="ngNote" placeholder=""></textarea>
-      </div>
-      <div class="ng-field">
-        <label id="t-ng-photo">拍照上傳</label>
-        <input type="file" id="ngPhotoInput" accept="image/*" capture="environment">
-        <div class="photo-upload-box" id="ngPhotoBox">
-          <div class="upload-icon">📷</div>
-          <div class="upload-hint" id="t-ng-photo-hint">點此拍照或選擇照片</div>
-        </div>
-      </div>
-      <button class="ng-submit-btn" id="ngSubmitBtn">送出回報</button>
-    </div>
-    <div class="ng-status" id="ngStatus" style="display:none;"></div>
-  </div>
-</div>
-
-<p style="text-align:center;font-size:12.5px;color:#8A94A0;margin-top:18px;line-height:1.7;max-width:420px;margin-left:auto;margin-right:auto;">
-  資料即時讀取自 Google Sheet，管理者更新表格後這裡會自動同步。
-</p>
-
-<script>
-/* ===================== 這裡放你的 Google Sheet 發佈CSV連結 ===================== */
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSIOrCL6G3FWG1wZvKYQHp1G9gu_E4QH9XyHt5r3sN7P3ap-nVR7Fz2mtT1zelamK4Ki8xibr747snh/pub?output=csv";
-
-/* ===================== NG回報 Apps Script Web App 網址 ===================== */
-const NG_REPORT_URL = "https://script.google.com/macros/s/AKfycbxL3Ldt4amqkcuz3d24UPuRgFwdV6tcU-EWKRSpvwnoQTMvvCBh7KdVsgsQ39TfcAU-Ag/exec";
-
-/* ===================== 語言包 ===================== */
-const I18N = {
-  zh: {
-    eyebrow: "掃描 QR CODE 後進入", title: "SOP 標準作業指導書",
-    tabSearch: "快速查詢", tabBrowse: "瀏覽選單",
-    searchLabel: "輸入工單上的料號＋製程代碼",
-    hint: "格式：料號-製程代碼，例如 -311。NG 請輸入「料號-NG」",
-    toggleCodesOpen: "查看製程代碼對照表 ▾", toggleCodesClose: "收起製程代碼對照表 ▴",
-    placeholder: "11C037800900-311",
-    emptyDefault: "輸入「料號－製程代碼」<br>符合唯一結果會直接開啟",
-    noResult: "找不到符合的料號／製程代碼，請確認輸入內容",
-    locked: (name, page) => `已鎖定：${name}－${page}<br>正在為您開啟該製程頁面…`,
-    chooseVendor: "請選擇廠商", back: "‹ 返回", home: "首頁", ngLabel: "NG 異常處理",
-    loading: "資料載入中…", loadError: "資料載入失敗，請確認網路連線或稍後再試",
-    tabNg: "NG回報", ngMatCode: "料號", ngProcess: "製程", ngTypeLabel: "異常類型",
-    ngNote: "備註（選填）", ngPhoto: "拍照上傳", ngPhotoHint: "點此拍照或選擇照片",
-    ngSubmit: "送出回報", ngSubmitting: "送出中…",
-    ngSuccessTitle: "回報成功", ngSuccessDesc: "已收到您的NG回報，謝謝！",
-    ngErrorTitle: "送出失敗", ngErrorDesc: "請檢查網路連線後再試一次",
-    ngAgain: "再回報一筆", ngNeedMatCode: "請輸入料號"
-  },
-  th: {
-    eyebrow: "หลังจากสแกน QR CODE", title: "คู่มือขั้นตอนการทำงาน (SOP)",
-    tabSearch: "ค้นหาด่วน", tabBrowse: "เมนูเรียกดู",
-    searchLabel: "กรอกรหัสสินค้า + รหัสกระบวนการ",
-    hint: "รูปแบบ: รหัสสินค้า-รหัสกระบวนการ เช่น -311 / NG พิมพ์ -NG",
-    toggleCodesOpen: "ดูตารางรหัสกระบวนการ ▾", toggleCodesClose: "ซ่อนตารางรหัสกระบวนการ ▴",
-    placeholder: "11C037800900-311",
-    emptyDefault: "กรอก \"รหัสสินค้า-รหัสกระบวนการ\"<br>หากพบผลลัพธ์เดียวจะเปิดหน้าทันที",
-    noResult: "ไม่พบรหัสสินค้า/รหัสกระบวนการที่ตรงกัน กรุณาตรวจสอบอีกครั้ง",
-    locked: (name, page) => `เลือกแล้ว: ${name}－${page}<br>กำลังเปิดหน้าขั้นตอนนี้…`,
-    chooseVendor: "เลือกผู้ผลิต", back: "‹ ย้อนกลับ", home: "หน้าแรก", ngLabel: "การจัดการของเสีย (NG)",
-    loading: "กำลังโหลดข้อมูล…", loadError: "โหลดข้อมูลไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตหรือลองใหม่",
-    tabNg: "รายงานของเสีย", ngMatCode: "รหัสสินค้า", ngProcess: "กระบวนการ", ngTypeLabel: "ประเภทความผิดปกติ",
-    ngNote: "หมายเหตุ (ไม่บังคับ)", ngPhoto: "ถ่ายภาพ/อัปโหลด", ngPhotoHint: "แตะเพื่อถ่ายภาพหรือเลือกรูป",
-    ngSubmit: "ส่งรายงาน", ngSubmitting: "กำลังส่ง…",
-    ngSuccessTitle: "ส่งสำเร็จ", ngSuccessDesc: "ได้รับรายงานของเสียแล้ว ขอบคุณค่ะ",
-    ngErrorTitle: "ส่งไม่สำเร็จ", ngErrorDesc: "กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่",
-    ngAgain: "รายงานอีกครั้ง", ngNeedMatCode: "กรุณากรอกรหัสสินค้า"
-  }
-};
-let currentLang = 'zh';
-
-const PROC_NAMES = {
-  zh: { "102":"鑄造","311":"鋸切","312":"雷切鋸切","313":"鋸切內","314":"鋸切外","310":"研磨","604":"校正","503":"噴砂","218":"焊補","605":"去毛邊","602":"檢驗＋包裝","603":"檢驗TO加工","606":"漏測","351":"退砂","352":"T4 熱處理","353":"T5 熱處理" },
-  th: { "102":"หล่อขึ้นรูป","311":"ตัด","312":"ตัดเลเซอร์","313":"ตัดด้านใน","314":"ตัดด้านนอก","310":"ขัด","604":"ปรับแนว","503":"พ่นทราย","218":"เชื่อมซ่อม","605":"ลบคม","602":"ตรวจสอบ+บรรจุ","603":"ตรวจสอบก่อนเข้าเครื่อง","606":"ทดสอบรั่วซึม","351":"ขจัดทราย","352":"อบชุบ T4","353":"อบชุบ T5" }
-};
-
-/* ===================== 資料狀態 ===================== */
-let DATA = [];       // 展平後的查詢用資料
-let VENDORS = {};    // 瀏覽模式用: vendor -> [{code,name,pages:[{page,url,procCode}]}]
-let dataLoaded = false;
-let dataError = false;
-
-function csvParse(text) {
-  // 簡單CSV解析,處理逗號分隔與雙引號
-  const rows = [];
-  let row = [], field = '', inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inQuotes) {
-      if (c === '"') {
-        if (text[i+1] === '"') { field += '"'; i++; }
-        else inQuotes = false;
-      } else field += c;
-    } else {
-      if (c === '"') inQuotes = true;
-      else if (c === ',') { row.push(field); field = ''; }
-      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
-      else if (c === '\r') { /* skip */ }
-      else field += c;
-    }
-  }
-  if (field.length || row.length) { row.push(field); rows.push(row); }
-  return rows;
-}
-
-async function loadData() {
+function doPost(e) {
   try {
-    const res = await fetch(SHEET_CSV_URL);
-    if (!res.ok) throw new Error('fetch failed');
-    const text = await res.text();
-    const rows = csvParse(text).filter(r => r.length > 1 && r[0]);
-    const header = rows[0];
-    const idx = {
-      vendor: header.indexOf('廠商'), code: header.indexOf('料號'),
-      name: header.indexOf('品名'), procCode: header.indexOf('製程代碼'),
-      page: header.indexOf('對應頁面'), url: header.indexOf('網址')
-    };
-    DATA = [];
-    VENDORS = {};
-    for (let i = 1; i < rows.length; i++) {
-      const r = rows[i];
-      if (!r[idx.code]) continue;
-      const item = {
-        vendor: r[idx.vendor], matCode: r[idx.code], name: r[idx.name],
-        procCode: r[idx.procCode], pageLabel: r[idx.page], url: r[idx.url]
-      };
-      DATA.push(item);
-      if (!VENDORS[item.vendor]) VENDORS[item.vendor] = {};
-      if (!VENDORS[item.vendor][item.matCode]) {
-        VENDORS[item.vendor][item.matCode] = { name: item.name, pages: [] };
+    const data = JSON.parse(e.postData.contents);
+
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('NG回報紀錄');
+
+    // 處理照片:將 base64 圖片存到雲端硬碟指定資料夾
+    let photoUrl = '';
+    if (data.photoBase64 && data.photoBase64.length > 0) {
+      const folderName = 'NG回報照片';
+      let folder;
+      const folders = DriveApp.getFoldersByName(folderName);
+      if (folders.hasNext()) {
+        folder = folders.next();
+      } else {
+        folder = DriveApp.createFolder(folderName);
       }
-      VENDORS[item.vendor][item.matCode].pages.push(item);
+
+      // 從 data URL 中取出純 base64 內容與檔案類型
+      const matches = data.photoBase64.match(/^data:(image\/\w+);base64,(.+)$/);
+      if (matches) {
+        const mimeType = matches[1];
+        const base64Data = matches[2];
+        const blob = Utilities.newBlob(
+          Utilities.base64Decode(base64Data),
+          mimeType,
+          `NG_${data.matCode || 'unknown'}_${new Date().getTime()}.jpg`
+        );
+        const file = folder.createFile(blob);
+        // 設定為「知道連結的人可檢視」,方便之後從Sheet直接點連結看照片
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        photoUrl = file.getUrl();
+      }
     }
-    dataLoaded = true;
-  } catch (e) {
-    dataError = true;
+
+    // 寫入一列新資料到 Sheet
+    sheet.appendRow([
+      new Date(),
+      data.matCode || '',
+      data.process || '',
+      data.ngType || '',
+      data.note || '',
+      photoUrl
+    ]);
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ result: 'success' }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ result: 'error', message: error.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
-/* ===================== 搜尋模式邏輯 ===================== */
-const input = document.getElementById('searchInput');
-const results = document.getElementById('results');
-const toggle = document.getElementById('toggleCodes');
-const codeTable = document.getElementById('codeTable');
-
-function renderCodeTable() {
-  const names = PROC_NAMES[currentLang];
-  const rows = Object.keys(names).map(code => `<tr><td>${names[code]}</td><td>${code}</td></tr>`).join('');
-  document.getElementById('codeTableBody').innerHTML = rows;
+// 測試用:確認部署是否成功可以訪問(用瀏覽器打開Web App網址會看到這個訊息)
+function doGet(e) {
+  return ContentService.createTextOutput('NG回報系統運作中,請使用POST方式送出資料。');
 }
-
-toggle.addEventListener('click', () => {
-  codeTable.classList.toggle('open');
-  toggle.textContent = codeTable.classList.contains('open') ? I18N[currentLang].toggleCodesClose : I18N[currentLang].toggleCodesOpen;
-});
-
-function parseQuery(raw) {
-  const cleaned = raw.trim();
-  const ngMatch = cleaned.match(/^([A-Za-z0-9]+)[\s\-]*NG$/i);
-  if (ngMatch) return { code: ngMatch[1].toLowerCase(), proc: 'NG' };
-  const m = cleaned.match(/^([A-Za-z0-9]+)[\s\-]*([0-9]{2,4})?$/);
-  if (!m) return { code: cleaned.toLowerCase(), proc: '' };
-  return { code: (m[1] || '').toLowerCase(), proc: (m[2] || '') };
-}
-
-function jumpTo(item) {
-  const t = I18N[currentLang];
-  results.innerHTML = `<div class="empty-state"><div class="big-icon">✅</div><p><b style="color:#1C2126">${t.locked(item.name, item.pageLabel)}</b></p></div>`;
-  window.location.href = item.url;
-}
-
-function render(list) {
-  const t = I18N[currentLang];
-  if (list.length === 0) { results.innerHTML = `<div class="no-result">${t.noResult}</div>`; return; }
-  if (list.length === 1) { jumpTo(list[0]); return; }
-  results.innerHTML = list.map(item => `
-    <div class="result-item" data-url="${item.url}">
-      <div class="result-left">
-        <div class="result-code">${item.matCode} · ${item.procCode}</div>
-        <div class="result-name">${item.name}</div>
-        <div class="result-meta"><span class="vendor${item.procCode==='NG' ? ' ng':''}">${item.vendor}</span>${item.pageLabel}</div>
-      </div>
-      <div class="arrow">›</div>
-    </div>`).join('');
-}
-
-results.addEventListener('click', (e) => {
-  const el = e.target.closest('[data-url]');
-  if (el) window.location.href = el.dataset.url;
-});
-
-function showEmptyState() {
-  if (!dataLoaded && !dataError) { results.innerHTML = `<div class="loading-state">${I18N[currentLang].loading}</div>`; return; }
-  if (dataError) { results.innerHTML = `<div class="error-state">${I18N[currentLang].loadError}</div>`; return; }
-  results.innerHTML = `<div class="empty-state"><div class="big-icon">🔍</div><p>${I18N[currentLang].emptyDefault}</p></div>`;
-}
-
-input.addEventListener('input', () => {
-  const raw = input.value.trim();
-  if (raw === '') { showEmptyState(); return; }
-  const query = parseQuery(raw);
-  const filtered = DATA.filter(item => {
-    const codeMatch = item.matCode.toLowerCase().includes(query.code);
-    const procMatch = query.proc ? item.procCode === query.proc : true;
-    return codeMatch && procMatch;
-  });
-  render(filtered);
-});
-
-/* ===================== 瀏覽模式邏輯 ===================== */
-const crumbEl = document.getElementById('crumb');
-const browseListEl = document.getElementById('browseList');
-let browseState = { level: 'vendor', vendor: null, matCode: null };
-
-function renderBrowse() {
-  const t = I18N[currentLang];
-  let crumbHTML = `<span class="clickable" data-nav="home">${t.home}</span>`;
-  if (browseState.vendor) crumbHTML += ` › <span class="${browseState.matCode ? 'clickable' : ''}" data-nav="vendor">${browseState.vendor}</span>`;
-  if (browseState.matCode) crumbHTML += ` › <span>${VENDORS[browseState.vendor][browseState.matCode].name}</span>`;
-  crumbEl.innerHTML = crumbHTML;
-
-  if (!dataLoaded && !dataError) { browseListEl.innerHTML = `<div class="loading-state">${t.loading}</div>`; return; }
-  if (dataError) { browseListEl.innerHTML = `<div class="error-state">${t.loadError}</div>`; return; }
-
-  if (browseState.level === 'vendor') {
-    browseListEl.innerHTML = Object.keys(VENDORS).map(v => `
-      <div class="browse-item" data-nav="toVendor" data-vendor="${v}">
-        <div><div class="label">${v}</div><div class="sub">${Object.keys(VENDORS[v]).length} 項產品</div></div>
-        <div class="arrow">›</div>
-      </div>`).join('');
-  } else if (browseState.level === 'product') {
-    const products = VENDORS[browseState.vendor];
-    browseListEl.innerHTML = Object.keys(products).map(code => `
-      <div class="browse-item" data-nav="toProduct" data-code="${code}">
-        <div><div class="label">${products[code].name}</div><div class="sub">${code}</div></div>
-        <div class="arrow">›</div>
-      </div>`).join('');
-  } else if (browseState.level === 'process') {
-    const names = PROC_NAMES[currentLang];
-    const product = VENDORS[browseState.vendor][browseState.matCode];
-    browseListEl.innerHTML = product.pages.map(p => `
-      <div class="browse-item" data-nav="toPage" data-url="${p.url}">
-        <div><div class="label ${p.procCode==='NG' ? 'ng-tag':''}">${p.pageLabel}</div><div class="sub">${p.procCode==='NG' ? t.ngLabel : (names[p.procCode]||p.procCode)}</div></div>
-        <div class="arrow">›</div>
-      </div>`).join('');
-  }
-}
-
-browseListEl.addEventListener('click', (e) => {
-  const el = e.target.closest('[data-nav]');
-  if (!el) return;
-  const nav = el.dataset.nav;
-  if (nav === 'toVendor') { browseState = { level:'product', vendor: el.dataset.vendor, matCode:null }; }
-  else if (nav === 'toProduct') { browseState = { level:'process', vendor: browseState.vendor, matCode: el.dataset.code }; }
-  else if (nav === 'toPage') { window.location.href = el.dataset.url; return; }
-  renderBrowse();
-});
-
-crumbEl.addEventListener('click', (e) => {
-  const el = e.target.closest('[data-nav]');
-  if (!el) return;
-  if (el.dataset.nav === 'home') browseState = { level:'vendor', vendor:null, matCode:null };
-  else if (el.dataset.nav === 'vendor') browseState = { level:'product', vendor: browseState.vendor, matCode:null };
-  renderBrowse();
-});
-
-/* ===================== Tab 切換 ===================== */
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
-  });
-});
-
-/* ===================== NG回報邏輯 ===================== */
-let ngPhotoBase64 = '';
-
-function populateNgProcessOptions() {
-  const select = document.getElementById('ngProcess');
-  const names = PROC_NAMES[currentLang];
-  select.innerHTML = Object.keys(names).map(code => `<option value="${names[code]}">${names[code]}</option>`).join('')
-    + `<option value="NG">NG</option>`;
-}
-
-document.getElementById('ngPhotoBox').addEventListener('click', () => {
-  document.getElementById('ngPhotoInput').click();
-});
-
-document.getElementById('ngPhotoInput').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    ngPhotoBase64 = ev.target.result;
-    const box = document.getElementById('ngPhotoBox');
-    box.classList.add('has-photo');
-    box.innerHTML = `<img src="${ngPhotoBase64}">`;
-  };
-  reader.readAsDataURL(file);
-});
-
-document.getElementById('ngSubmitBtn').addEventListener('click', async () => {
-  const t = I18N[currentLang];
-  const matCode = document.getElementById('ngMatCode').value.trim();
-  const process = document.getElementById('ngProcess').value;
-  const ngType = document.getElementById('ngType').value;
-  const note = document.getElementById('ngNote').value.trim();
-
-  if (!matCode) {
-    alert(t.ngNeedMatCode);
-    return;
-  }
-
-  const btn = document.getElementById('ngSubmitBtn');
-  btn.disabled = true;
-  btn.textContent = t.ngSubmitting;
-
-  try {
-    await fetch(NG_REPORT_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ matCode, process, ngType, note, photoBase64: ngPhotoBase64 })
-    });
-
-    document.getElementById('ngFormWrap').style.display = 'none';
-    const statusEl = document.getElementById('ngStatus');
-    statusEl.style.display = 'block';
-    statusEl.innerHTML = `
-      <div class="big-icon">✅</div>
-      <p><b style="color:#1C2126">${t.ngSuccessTitle}</b><br>${t.ngSuccessDesc}</p>
-      <button class="ng-submit-btn" id="ngAgainBtn" style="margin-top:14px;">${t.ngAgain}</button>
-    `;
-    document.getElementById('ngAgainBtn').addEventListener('click', resetNgForm);
-  } catch (err) {
-    document.getElementById('ngFormWrap').style.display = 'none';
-    const statusEl = document.getElementById('ngStatus');
-    statusEl.style.display = 'block';
-    statusEl.innerHTML = `
-      <div class="big-icon">⚠️</div>
-      <p><b style="color:#C24242">${t.ngErrorTitle}</b><br>${t.ngErrorDesc}</p>
-      <button class="ng-submit-btn" id="ngAgainBtn" style="margin-top:14px;">${t.ngAgain}</button>
-    `;
-    document.getElementById('ngAgainBtn').addEventListener('click', resetNgForm);
-  }
-});
-
-function resetNgForm() {
-  document.getElementById('ngMatCode').value = '';
-  document.getElementById('ngNote').value = '';
-  document.getElementById('ngPhotoInput').value = '';
-  ngPhotoBase64 = '';
-  const box = document.getElementById('ngPhotoBox');
-  box.classList.remove('has-photo');
-  box.innerHTML = `<div class="upload-icon">📷</div><div class="upload-hint" id="t-ng-photo-hint">${I18N[currentLang].ngPhotoHint}</div>`;
-  const btn = document.getElementById('ngSubmitBtn');
-  btn.disabled = false;
-  btn.textContent = I18N[currentLang].ngSubmit;
-  document.getElementById('ngStatus').style.display = 'none';
-  document.getElementById('ngFormWrap').style.display = 'block';
-}
-
-/* ===================== 語言切換 ===================== */
-document.querySelectorAll('.lang-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    currentLang = btn.dataset.lang;
-    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    applyLang();
-  });
-});
-
-function applyLang() {
-  const t = I18N[currentLang];
-  document.getElementById('t-eyebrow').textContent = t.eyebrow;
-  document.getElementById('t-title').textContent = t.title;
-  document.getElementById('t-tab-search').textContent = t.tabSearch;
-  document.getElementById('t-tab-browse').textContent = t.tabBrowse;
-  document.getElementById('t-tab-ng').textContent = t.tabNg;
-  document.getElementById('t-search-label').textContent = t.searchLabel;
-  document.getElementById('t-hint').textContent = t.hint;
-  document.getElementById('t-ng-matcode').textContent = t.ngMatCode;
-  document.getElementById('t-ng-process').textContent = t.ngProcess;
-  document.getElementById('t-ng-type').textContent = t.ngTypeLabel;
-  document.getElementById('t-ng-note').textContent = t.ngNote;
-  document.getElementById('t-ng-photo').textContent = t.ngPhoto;
-  const photoHintEl = document.getElementById('t-ng-photo-hint');
-  if (photoHintEl) photoHintEl.textContent = t.ngPhotoHint;
-  document.getElementById('ngSubmitBtn').textContent = t.ngSubmit;
-  input.placeholder = t.placeholder;
-  toggle.textContent = codeTable.classList.contains('open') ? t.toggleCodesClose : t.toggleCodesOpen;
-  renderCodeTable();
-  populateNgProcessOptions();
-  showEmptyState();
-  renderBrowse();
-}
-
-/* ===================== 初始化 ===================== */
-async function init() {
-  renderCodeTable();
-  populateNgProcessOptions();
-  showEmptyState();
-  renderBrowse();
-  await loadData();
-  input.disabled = false;
-  renderCodeTable();
-  showEmptyState();
-  renderBrowse();
-}
-init();
-</script>
-
-</body>
-</html>body>
-</html>
