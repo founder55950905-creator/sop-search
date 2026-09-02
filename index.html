@@ -98,9 +98,45 @@
   .ng-status { text-align:center; padding:20px; }
   .ng-status .big-icon { font-size:36px; margin-bottom:10px; }
   .ng-status p { font-size:14px; color:#6B7684; line-height:1.6; }
+
+  /* 密碼保護層 */
+  #gateOverlay {
+    position:fixed; inset:0; background:#1C2126; z-index:9999;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .gate-box {
+    max-width:340px; width:100%; background:#FFFFFF; border-radius:16px;
+    padding:32px 24px; text-align:center; box-shadow:0 8px 30px rgba(0,0,0,0.3);
+  }
+  .gate-box .gate-icon { font-size:36px; margin-bottom:12px; }
+  .gate-box h2 { font-size:17px; color:#1C2126; margin-bottom:6px; }
+  .gate-box p { font-size:12.5px; color:#9AA3AC; margin-bottom:20px; }
+  #gatePassword {
+    width:100%; border:2px solid #E4E7EB; border-radius:10px; padding:13px 14px;
+    font-size:18px; text-align:center; letter-spacing:4px; margin-bottom:14px;
+    color:#1C2126; font-family:inherit;
+  }
+  #gatePassword:focus { outline:none; border-color:#F5A623; }
+  #gateSubmit {
+    width:100%; background:#F5A623; color:#1C2126; border:none; border-radius:10px;
+    padding:13px; font-size:15px; font-weight:700; cursor:pointer;
+  }
+  #gateError { color:#C24242; font-size:12.5px; margin-top:10px; display:none; }
+  .phone { display:none; }
 </style>
 </head>
 <body>
+
+<div id="gateOverlay">
+  <div class="gate-box">
+    <div class="gate-icon">🔒</div>
+    <h2>SOP查詢系統</h2>
+    <p>請輸入密碼以繼續</p>
+    <input type="password" id="gatePassword" placeholder="●●●●" inputmode="numeric" autocomplete="off">
+    <button id="gateSubmit">進入</button>
+    <div id="gateError">密碼錯誤，請再試一次</div>
+  </div>
+</div>
 
 <div class="phone">
   <div class="topbar">
@@ -587,7 +623,38 @@ async function init() {
   showEmptyState();
   renderBrowse();
 }
-init();
+
+/* ===================== 密碼保護層 ===================== */
+const GATE_PASSWORD = "1234"; // ← 請務必修改成你自己的密碼
+
+function unlockApp() {
+  document.getElementById('gateOverlay').style.display = 'none';
+  document.querySelector('.phone').style.display = 'block';
+  init();
+}
+
+document.getElementById('gateSubmit').addEventListener('click', checkPassword);
+document.getElementById('gatePassword').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') checkPassword();
+});
+
+function checkPassword() {
+  const input = document.getElementById('gatePassword');
+  const errorEl = document.getElementById('gateError');
+  if (input.value === GATE_PASSWORD) {
+    sessionStorage.setItem('sopGateUnlocked', '1');
+    unlockApp();
+  } else {
+    errorEl.style.display = 'block';
+    input.value = '';
+    input.focus();
+  }
+}
+
+// 若同一個瀏覽器session已經輸入過一次正確密碼，不用每次重打
+if (sessionStorage.getItem('sopGateUnlocked') === '1') {
+  unlockApp();
+}
 </script>
 
 </body>
